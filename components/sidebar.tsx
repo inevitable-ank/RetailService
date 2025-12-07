@@ -26,7 +26,7 @@ export function Sidebar({ isCollapsed = false, onToggle }: SidebarProps) {
   return (
     <div
       className={`bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-all duration-300 ${
-        collapsed ? "w-16" : "w-56"
+        collapsed ? "w-16" : "w-[220px]"
       }`}
     >
       {/* Logo */}
