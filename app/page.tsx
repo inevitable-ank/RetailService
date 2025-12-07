@@ -19,6 +19,7 @@ export default function Dashboard() {
     regions: [] as string[],
     genders: [] as string[],
     ageRange: [0, 100] as [number, number],
+    ageRanges: [] as string[],
     categories: [] as string[],
     tags: [] as string[],
     paymentMethods: [] as string[],
@@ -97,7 +98,6 @@ export default function Dashboard() {
         <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-3">
-            <StatsCards stats={stats} />
             <FilterPanel
               filters={filters}
               onFiltersChange={setFilters}
@@ -106,6 +106,7 @@ export default function Dashboard() {
               sortOrder={sortOrder}
               onSortOrderChange={setSortOrder}
             />
+            <StatsCards stats={stats} />
             <TransactionTable data={paginatedData} />
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
