@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({
     regions: [] as string[],
     genders: [] as string[],
-    ageRange: [0, 100],
+    ageRange: [0, 100] as [number, number],
     categories: [] as string[],
     tags: [] as string[],
     paymentMethods: [] as string[],
