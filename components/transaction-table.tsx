@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react"
+import { Copy } from "lucide-react"
 
 interface Transaction {
   transactionId: string
@@ -21,20 +21,22 @@ interface TransactionTableProps {
 }
 
 export function TransactionTable({ data }: TransactionTableProps) {
-  const columns = [
-    { key: "transactionId", label: "Transaction ID", width: 100 },
-    { key: "date", label: "Date", width: 90 },
-    { key: "customerId", label: "Customer ID", width: 100 },
-    { key: "customerName", label: "Customer name", width: 110 },
-    { key: "phoneNumber", label: "Phone Number", width: 130 },
-    { key: "gender", label: "Gender", width: 75 },
-    { key: "age", label: "Age", width: 60 },
-    { key: "productCategory", label: "Product Category", width: 120 },
-    { key: "quantity", label: "Quantity", width: 75 },
-    { key: "totalAmount", label: "Total Amount", width: 100 },
-    { key: "customerRegion", label: "Customer region", width: 110 },
-    { key: "productId", label: "Product ID", width: 100 },
-    { key: "employeeName", label: "Employee name", width: 110 },
+  // Column widths from Figma design
+  const allColumns = [
+    { key: "transactionId", label: "Transaction ID", minWidth: 156 },
+    { key: "date", label: "Date", minWidth: 120 },
+    { key: "customerId", label: "Customer ID", minWidth: 156 },
+    { key: "customerName", label: "Customer name", minWidth: 168 },
+    { key: "phoneNumber", label: "Phone Number", minWidth: 156 },
+    { key: "gender", label: "Gender", minWidth: 120 },
+    { key: "age", label: "Age", minWidth: 120 },
+    { key: "productCategory", label: "Product Category", minWidth: 125 },
+    { key: "quantity", label: "Quantity", minWidth: 156 },
+    // Columns after horizontal scroll
+    { key: "totalAmount", label: "Total Amount", minWidth: 156 },
+    { key: "customerRegion", label: "Customer region", minWidth: 156 },
+    { key: "productId", label: "Product ID", minWidth: 156 },
+    { key: "employeeName", label: "Employee name", minWidth: 156 },
   ]
 
   const formatValue = (key: string, value: any) => {
@@ -47,50 +49,66 @@ export function TransactionTable({ data }: TransactionTableProps) {
     return value
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+  }
+
+  // Calculate total min width for the table
+  const totalMinWidth = allColumns.reduce((sum, col) => sum + col.minWidth, 0)
+
   return (
-    <div className="bg-card border border-border rounded overflow-hidden">
-      <div className="horizontal-scroll">
-        <table className="w-full text-xs">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" style={{ minWidth: totalMinWidth }}>
           <thead>
-            <tr className="border-b border-border bg-muted">
-              {columns.map((col) => (
+            <tr className="border-b border-border bg-muted/50">
+              {allColumns.map((col) => (
                 <th
                   key={col.key}
-                  style={{ width: col.width }}
-                  className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap"
+                  style={{ minWidth: col.minWidth }}
+                  className="px-4 py-3 text-left font-semibold text-foreground whitespace-nowrap"
                 >
                   {col.label}
                 </th>
               ))}
-              <th className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap" style={{ width: 50 }}>
-                Action
-              </th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-3 py-6 text-center text-muted-foreground text-xs">
+                <td colSpan={allColumns.length} className="px-4 py-8 text-center text-muted-foreground text-sm">
                   No records found
                 </td>
               </tr>
             ) : (
               data.map((row, idx) => (
-                <tr key={idx} className="border-b border-border hover:bg-secondary transition-colors">
-                  {columns.map((col) => (
+                <tr key={idx} className="border-b border-border hover:bg-muted/30 transition-colors">
+                  {allColumns.map((col) => (
                     <td
                       key={col.key}
-                      style={{ width: col.width }}
-                      className="px-3 py-2 text-foreground whitespace-nowrap"
+                      style={{ minWidth: col.minWidth }}
+                      className="px-4 py-3 text-foreground whitespace-nowrap"
                     >
-                      {formatValue(col.key, row[col.key as keyof Transaction])}
+                      {col.key === "phoneNumber" ? (
+                        <span className="inline-flex items-center gap-2">
+                          {row.phoneNumber}
+                          <button
+                            onClick={() => copyToClipboard(row.phoneNumber)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copy phone number"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ) : col.key === "productCategory" ? (
+                        <span className="text-primary font-medium">
+                          {row.productCategory}
+                        </span>
+                      ) : (
+                        formatValue(col.key, row[col.key as keyof Transaction])
+                      )}
                     </td>
                   ))}
-                  <td className="px-3 py-2" style={{ width: 50 }}>
-                    <button className="text-primary hover:text-primary/80 transition-colors">
-                      <Eye className="w-3 h-3" />
-                    </button>
-                  </td>
                 </tr>
               ))
             )}
