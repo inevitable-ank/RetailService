@@ -37,16 +37,6 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-sm font-semibold">Sales Management System</h1>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-4 bg-background border border-border rounded px-4 w-full max-w-[400px] h-8">
-              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Name, Phone no."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full bg-transparent text-xs focus:outline-none"
-              />
-            </div>
             <button
               onClick={toggleFullscreen}
               className="p-2 hover:bg-secondary rounded-md transition-colors"
@@ -58,6 +48,16 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 <Maximize2 className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
+            <div className="flex items-center gap-4 bg-background border border-border rounded px-4 w-[400px] max-w-full flex-shrink h-8">
+              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Name, Phone no."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full bg-transparent text-xs focus:outline-none"
+              />
+            </div>
           </div>
         </div>
       </div>
