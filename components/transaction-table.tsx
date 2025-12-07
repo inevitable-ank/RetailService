@@ -1,4 +1,7 @@
-import { Copy } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { Copy, Check } from "lucide-react"
 
 interface Transaction {
   transactionId: string
@@ -49,8 +52,16 @@ export function TransactionTable({ data }: TransactionTableProps) {
     return value
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 1500) // Reset after 1.5s
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
   }
 
   // Calculate total min width for the table
@@ -93,11 +104,15 @@ export function TransactionTable({ data }: TransactionTableProps) {
                         <span className="inline-flex items-center gap-2">
                           {row.phoneNumber}
                           <button
-                            onClick={() => copyToClipboard(row.phoneNumber)}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => copyToClipboard(row.phoneNumber, row.transactionId)}
+                            className="text-muted-foreground hover:text-primary transition-colors"
                             title="Copy phone number"
                           >
-                            <Copy className="w-3 h-3" />
+                            {copiedId === row.transactionId ? (
+                              <Check className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
                           </button>
                         </span>
                       ) : col.key === "productCategory" ? (

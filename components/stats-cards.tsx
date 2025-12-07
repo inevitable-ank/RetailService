@@ -31,16 +31,19 @@ export function StatsCards({ stats }: StatsProps) {
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="flex flex-wrap gap-3">
       {cards.map((card, idx) => (
-        <div key={idx} className="bg-card border border-border rounded p-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
+        <div 
+          key={idx} 
+          className="bg-card border border-border rounded-lg py-2 px-4 min-w-[120px]"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-muted-foreground">{card.label}</p>
               <h3 className="text-base font-semibold">{card.value}</h3>
             </div>
-            <div className={`${card.color} p-2 rounded-lg flex-shrink-0`}>
-              <card.icon className="w-4 h-4" />
+            <div className={`${card.color} p-1.5 rounded-md flex-shrink-0`}>
+              <card.icon className="w-3 h-3" />
             </div>
           </div>
         </div>
