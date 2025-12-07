@@ -8,18 +8,18 @@ interface HeaderProps {
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   return (
-    <header className="bg-card border-b border-border">
-      <div className="px-5">
-        <div className="flex items-center justify-between gap-4 mb-3 min-h-[44px]">
+    <header className="bg-card border-b border-border min-h-[44px] flex items-center">
+      <div className="px-5 w-full">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="text-sm font-semibold">Sales Management System</h1>
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-4 bg-background border border-border rounded px-4 w-full max-w-[400px] h-8">
+            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <input
               type="text"
               placeholder="Name, Phone no."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-transparent text-xs focus:outline-none"
             />
           </div>
         </div>
