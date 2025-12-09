@@ -3,28 +3,30 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Mail, User, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Mail, User, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 
 export default function RegisterPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [formError, setFormError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
   const [formData, setFormData] = useState({
     email: "",
-    username: "",
+    name: "",
     password: "",
     confirmPassword: ""
   })
   const [errors, setErrors] = useState({
     email: "",
-    username: "",
+    name: "",
     password: "",
     confirmPassword: ""
   })
   const [touched, setTouched] = useState({
     email: false,
-    username: false,
+    name: false,
     password: false,
     confirmPassword: false
   })
@@ -35,10 +37,9 @@ export default function RegisterPage() {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email"
       return ""
     }
-    if (name === "username") {
-      if (!value) return "Username is required"
-      if (value.length < 3) return "Username must be at least 3 characters"
-      if (!/^[a-zA-Z0-9_]+$/.test(value)) return "Username can only contain letters, numbers, and underscores"
+    if (name === "name") {
+      if (!value) return "Name is required"
+      if (value.length < 2) return "Name must be at least 2 characters"
       return ""
     }
     if (name === "password") {
@@ -81,19 +82,41 @@ export default function RegisterPage() {
     
     const newErrors = {
       email: validateField("email", formData.email),
-      username: validateField("username", formData.username),
+      name: validateField("name", formData.name),
       password: validateField("password", formData.password),
       confirmPassword: validateField("confirmPassword", formData.confirmPassword)
     }
     setErrors(newErrors)
-    setTouched({ email: true, username: true, password: true, confirmPassword: true })
+    setTouched({ email: true, name: true, password: true, confirmPassword: true })
 
     if (Object.values(newErrors).some(error => error)) return
 
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    router.push("/login")
-    setIsLoading(false)
+    setFormError("")
+    setSuccessMessage("")
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password, name: formData.name })
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        setFormError(result?.message || "Unable to create account. Please try again.")
+        setIsLoading(false)
+        return
+      }
+
+      setSuccessMessage("Account created. Please check your email to verify, then log in.")
+      router.push("/login")
+    } catch (error) {
+      setFormError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -107,7 +130,7 @@ export default function RegisterPage() {
         <p className="text-gray-500 text-sm ml-4">Start your journey with us today</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
         {/* Email Field */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-gray-700 ml-1">Email Address</label>
@@ -121,46 +144,48 @@ export default function RegisterPage() {
                 errors.email && touched.email ? "text-red-400" : "text-gray-400"
               }`} />
             </div>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="you@example.com"
-              className="w-full px-2 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium"
-            />
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="off"
+                  value={formData.email}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="you@example.com"
+                  className="w-full px-2 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium"
+                />
           </div>
           {errors.email && touched.email && (
             <p className="text-red-500 text-xs mt-1.5 ml-1.5 font-medium animate-in slide-in-from-top-1">{errors.email}</p>
           )}
         </div>
 
-        {/* Username Field */}
+        {/* Name Field */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-gray-700 ml-1">Username</label>
+          <label className="text-xs font-medium text-gray-700 ml-1">Full Name</label>
           <div className={`relative flex items-center border-2 rounded-xl transition-all duration-200 shadow-sm ${
-            errors.username && touched.username 
+            errors.name && touched.name 
               ? "border-red-400 bg-red-50/50 shadow-red-100" 
               : "border-gray-200 bg-white hover:border-gray-300 focus-within:border-gray-900 focus-within:shadow-md focus-within:shadow-gray-200"
           }`}>
             <div className="pl-4 pr-2">
               <User className={`w-5 h-5 transition-colors ${
-                errors.username && touched.username ? "text-red-400" : "text-gray-400"
+                errors.name && touched.name ? "text-red-400" : "text-gray-400"
               }`} />
             </div>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Choose a username"
-              className="w-full px-2 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium"
-            />
+                <input
+                  type="text"
+              name="name"
+                  autoComplete="off"
+              value={formData.name}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+              placeholder="Your name"
+                  className="w-full px-2 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium"
+                />
           </div>
-          {errors.username && touched.username && (
-            <p className="text-red-500 text-xs mt-1.5 ml-1.5 font-medium animate-in slide-in-from-top-1">{errors.username}</p>
+          {errors.name && touched.name && (
+            <p className="text-red-500 text-xs mt-1.5 ml-1.5 font-medium animate-in slide-in-from-top-1">{errors.name}</p>
           )}
         </div>
 
@@ -179,15 +204,16 @@ export default function RegisterPage() {
                   errors.password && touched.password ? "text-red-400" : "text-gray-400"
                 }`} />
               </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Password"
-                className="w-full px-1.5 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium pr-10"
-              />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Password"
+                    className="w-full px-1.5 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium pr-10"
+                  />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -214,15 +240,16 @@ export default function RegisterPage() {
                   errors.confirmPassword && touched.confirmPassword ? "text-red-400" : "text-gray-400"
                 }`} />
               </div>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Confirm"
-                className="w-full px-1.5 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium pr-10"
-              />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    autoComplete="new-password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Confirm"
+                    className="w-full px-1.5 py-4 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm font-medium pr-10"
+                  />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -252,6 +279,20 @@ export default function RegisterPage() {
             <span>Create Account</span>
           )}
         </button>
+
+        {formError && (
+          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+            <AlertCircle className="w-4 h-4" />
+            <span>{formError}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 px-3 py-2 text-sm">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{successMessage}</span>
+          </div>
+        )}
       </form>
 
       {/* Divider */}

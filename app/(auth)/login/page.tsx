@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,6 +17,7 @@ export default function LoginPage() {
     email: "",
     password: ""
   })
+  const [formError, setFormError] = useState("")
   const [touched, setTouched] = useState({
     email: false,
     password: false
@@ -63,9 +64,36 @@ export default function LoginPage() {
     if (newErrors.email || newErrors.password) return
 
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    router.push("/")
-    setIsLoading(false)
+    setFormError("")
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password })
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        setFormError(result?.message || "Unable to sign in. Please try again.")
+        setIsLoading(false)
+        return
+      }
+
+      // Store minimal session in localStorage for the profile page
+      const authData = {
+        user: result?.data?.user,
+        access_token: result?.data?.session?.access_token
+      }
+      localStorage.setItem("authUser", JSON.stringify(authData))
+
+      router.push("/profile")
+    } catch (error) {
+      setFormError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -79,7 +107,7 @@ export default function LoginPage() {
         <p className="text-gray-500 text-sm ml-4">Enter your credentials to access your account</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
         {/* Email Field */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-gray-700 ml-1">Email Address</label>
@@ -96,6 +124,7 @@ export default function LoginPage() {
             <input
               type="email"
               name="email"
+              autoComplete="off"
               value={formData.email}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -124,6 +153,7 @@ export default function LoginPage() {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
+              autoComplete="new-password"
               value={formData.password}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -168,6 +198,13 @@ export default function LoginPage() {
             <span>Sign In</span>
           )}
         </button>
+
+        {formError && (
+          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+            <AlertCircle className="w-4 h-4" />
+            <span>{formError}</span>
+          </div>
+        )}
       </form>
 
       {/* Divider */}
