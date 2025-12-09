@@ -1,22 +1,61 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Retail Sales Management System - Frontend
+
+A modern web interface for managing retail sales transactions with advanced search, filtering, sorting, and pagination capabilities.
+
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ and pnpm (or npm/yarn)
+- Backend server running (see backend README for setup)
+
+### Installation
+
+1. Install dependencies:
 ```bash
+pnpm install
+# or
+npm install
+```
+
+2. Create `.env.local` file (optional for local development):
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+3. Run the development server:
+```bash
+pnpm dev
+# or
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Test Credentials
+
+A demo account with pre-loaded dataset is available for testing:
+
+- **Email:** `cemewox288@asurad.com`
+- **Password:** `Password@123`
+
+This account contains sample transaction data that you can use to test the search, filtering, sorting, and pagination features.
+
+### Features
+
+- **Authentication:** Secure login/register with Supabase Auth
+- **Transaction Management:** View, search, filter, and sort transactions
+- **Data Import:** Upload CSV files to import transaction data
+- **Real-time Statistics:** View aggregated stats based on current filters
+- **Advanced Search:** Full-text search across customer names and phone numbers
+- **Multi-criteria Filtering:** Filter by region, gender, category, age, date, and more
+- **Pagination:** Efficient pagination for large datasets
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
