@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { 
   BarChart3, 
   ChevronDown, 
@@ -84,10 +85,12 @@ export function Sidebar({ isCollapsed = false, onToggle }: SidebarProps) {
       }`}
     >
       {/* Logo / User */}
-      <div
-        className={`border-b border-sidebar-border flex items-center transition-all duration-300 ${
+      <Link
+        href="/profile"
+        className={`border-b border-sidebar-border flex items-center transition-all duration-300 cursor-pointer hover:bg-sidebar-accent/50 ${
           collapsed ? "p-3 justify-center" : "p-4 justify-between"
         }`}
+        title={collapsed ? "Go to Profile" : undefined}
       >
         {!collapsed && (
           <>
@@ -104,7 +107,7 @@ export function Sidebar({ isCollapsed = false, onToggle }: SidebarProps) {
           </>
         )}
         {collapsed && <BarChart3 className="w-5 h-5 text-sidebar-primary" />}
-      </div>
+      </Link>
 
       {/* Main Menu */}
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
