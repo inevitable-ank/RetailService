@@ -1,14 +1,20 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { User, Mail, LogOut, Download, UserRound, ArrowLeft, Shield, Settings, FileText, Loader2 } from "lucide-react"
+import { User, Mail, LogOut, Upload, UserRound, ArrowLeft, Shield, Settings, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { uploadTransactions, getUploadHistory, type UploadHistory } from "@/lib/api"
 
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth()
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; imported?: number; totalRecords?: number } | null>(null)
+  const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -16,8 +22,84 @@ export default function ProfilePage() {
     }
   }, [user, loading, router])
 
+  // Fetch upload history
+  useEffect(() => {
+    if (user) {
+      const fetchHistory = async () => {
+        try {
+          setLoadingHistory(true)
+          const data = await getUploadHistory()
+          setUploadHistory(data.uploads)
+        } catch (error) {
+          console.error("Error fetching upload history:", error)
+        } finally {
+          setLoadingHistory(false)
+        }
+      }
+      fetchHistory()
+    }
+  }, [user])
+
+  // Refresh history after successful upload
+  useEffect(() => {
+    if (uploadResult?.success && user) {
+      const fetchHistory = async () => {
+        try {
+          const data = await getUploadHistory()
+          setUploadHistory(data.uploads)
+        } catch (error) {
+          console.error("Error fetching upload history:", error)
+        }
+      }
+      fetchHistory()
+    }
+  }, [uploadResult, user])
+
   const handleSignOut = async () => {
     await logout()
+  }
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.name.endsWith(".csv") && file.type !== "text/csv") {
+      setUploadResult({
+        success: false,
+        message: "Please upload a CSV file",
+      })
+      return
+    }
+
+    setUploading(true)
+    setUploadResult(null)
+
+    try {
+      const result = await uploadTransactions(file)
+      setUploadResult({
+        success: true,
+        message: `Successfully imported ${result.imported} out of ${result.totalRecords} records`,
+        imported: result.imported,
+        totalRecords: result.totalRecords,
+      })
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch (error) {
+      setUploadResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to upload file",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
   }
 
   // Extract name from various possible locations in the user object
@@ -222,32 +304,140 @@ export default function ProfilePage() {
 
           {/* Right Column - Quick Actions */}
           <div className="space-y-6">
-            {/* Export Data Card */}
+            {/* Upload Data Card */}
             <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
               <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4 border-b border-border">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Download className="h-5 w-5 text-primary" />
+                    <Upload className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">Export Data</h3>
-                    <p className="text-xs text-muted-foreground">Download your information</p>
+                    <h3 className="font-semibold text-foreground">Upload Data</h3>
+                    <p className="text-xs text-muted-foreground">Upload your information</p>
                   </div>
                 </div>
               </div>
               <div className="p-6 space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Download your sales data, transaction history, or complete profile information in various formats.
+                  Upload your sales data CSV file to import transactions into the system. The file will be processed in batches for optimal performance.
                 </p>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                
                 <button
                   type="button"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleUploadClick}
+                  disabled={uploading}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-4 w-4" />
-                  Export Data
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload Data
+                    </>
+                  )}
                 </button>
+
+                {uploadResult && (
+                  <div
+                    className={`p-3 rounded-lg text-sm ${
+                      uploadResult.success
+                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-600"
+                        : "bg-destructive/10 border border-destructive/20 text-destructive"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {uploadResult.success ? (
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium">{uploadResult.message}</p>
+                        {uploadResult.success && uploadResult.imported !== undefined && uploadResult.totalRecords !== undefined && (
+                          <p className="text-xs mt-1 opacity-80">
+                            {uploadResult.totalRecords - uploadResult.imported > 0
+                              ? `${uploadResult.totalRecords - uploadResult.imported} records were skipped (duplicates or errors)`
+                              : "All records imported successfully"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Upload History Card */}
+            {uploadHistory.length > 0 && (
+              <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Upload History</h3>
+                      <p className="text-xs text-muted-foreground">Recent CSV uploads</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {loadingHistory ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {uploadHistory.slice(0, 5).map((upload) => (
+                        <div
+                          key={upload.id}
+                          className="p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-foreground truncate">{upload.fileName}</p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{upload.importedRecords} / {upload.totalRecords} imported</span>
+                                {upload.failedRecords > 0 && (
+                                  <span className="text-destructive">{upload.failedRecords} failed</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(upload.uploadedAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                upload.status === "completed"
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : upload.status === "failed"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-yellow-500/10 text-yellow-600"
+                              }`}
+                            >
+                              {upload.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Quick Stats Card */}
             <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/3 border border-border/50 p-6">

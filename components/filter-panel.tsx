@@ -3,17 +3,11 @@
 import { useState } from "react"
 import { ChevronDown, RotateCcw } from "lucide-react"
 
+import type { TransactionFilters } from "@/lib/api"
+
 interface FilterPanelProps {
-  filters: {
-    regions: string[]
-    genders: string[]
-    ageRange: [number, number]
-    categories: string[]
-    tags: string[]
-    paymentMethods: string[]
-    dateRange: [Date, Date] | null
-  }
-  onFiltersChange: (filters: any) => void
+  filters: TransactionFilters
+  onFiltersChange: (filters: TransactionFilters) => void
   sortBy: string
   onSortByChange: (value: string) => void
   sortOrder: "asc" | "desc"
@@ -38,21 +32,21 @@ export function FilterPanel({
   const [expandedDropdown, setExpandedDropdown] = useState<string | null>(null)
 
   const handleFilterToggle = (filterKey: string, value: string) => {
-    const currentValues = filters[filterKey as keyof typeof filters] as string[]
+    const currentValues = (filters[filterKey as keyof typeof filters] as string[]) || []
     const newValues = currentValues.includes(value)
       ? currentValues.filter((v) => v !== value)
       : [...currentValues, value]
-    onFiltersChange({ ...filters, [filterKey]: newValues })
+    onFiltersChange({ ...filters, [filterKey]: newValues.length > 0 ? newValues : undefined })
   }
 
   const resetFilters = () => {
     onFiltersChange({
-      regions: [],
-      genders: [],
-      ageRange: [0, 100],
-      categories: [],
-      tags: [],
-      paymentMethods: [],
+      regions: undefined,
+      genders: undefined,
+      ageRange: undefined,
+      categories: undefined,
+      tags: undefined,
+      paymentMethods: undefined,
       dateRange: null,
     })
     setExpandedDropdown(null)
@@ -78,7 +72,7 @@ export function FilterPanel({
             >
               <input
                 type="checkbox"
-                checked={(filters[filterKey as keyof typeof filters] as string[]).includes(option)}
+                checked={((filters[filterKey as keyof typeof filters] as string[]) || []).includes(option)}
                 onChange={() => handleFilterToggle(filterKey, option)}
                 className="w-3 h-3 rounded cursor-pointer"
               />
@@ -103,7 +97,6 @@ export function FilterPanel({
       
       <DropdownFilter label="Customer Region" options={REGIONS} filterKey="regions" />
       <DropdownFilter label="Gender" options={GENDERS} filterKey="genders" />
-      <DropdownFilter label="Age Range" options={AGE_RANGES} filterKey="ageRanges" />
       <DropdownFilter label="Product Category" options={CATEGORIES} filterKey="categories" />
       <DropdownFilter label="Tags" options={TAGS} filterKey="tags" />
       <DropdownFilter label="Payment Method" options={PAYMENT_METHODS} filterKey="paymentMethods" />

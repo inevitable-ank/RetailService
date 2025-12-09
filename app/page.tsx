@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
@@ -8,101 +8,104 @@ import { StatsCards } from "@/components/stats-cards"
 import { FilterPanel } from "@/components/filter-panel"
 import { TransactionTable } from "@/components/transaction-table"
 import { Pagination } from "@/components/pagination"
-import { generateSalesData } from "@/lib/mock-data"
 import { useAuth } from "@/contexts/AuthContext"
 import { Loader2 } from "lucide-react"
+import { getTransactions, getStats, type Transaction, type TransactionFilters } from "@/lib/api"
 
 export default function Dashboard() {
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
-    }
-  }, [user, loading, router])
-  const allData = useMemo(() => generateSalesData(100), [])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  // Data state
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [stats, setStats] = useState({ totalUnits: 0, totalAmount: 0, totalDiscount: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Query state
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [filters, setFilters] = useState({
-    regions: [] as string[],
-    genders: [] as string[],
-    ageRange: [0, 100] as [number, number],
-    ageRanges: [] as string[],
-    categories: [] as string[],
-    tags: [] as string[],
-    paymentMethods: [] as string[],
-    dateRange: null as [Date, Date] | null,
+  const [totalPages, setTotalPages] = useState(1)
+  const [filters, setFilters] = useState<TransactionFilters>({
+    regions: undefined,
+    genders: undefined,
+    ageRange: undefined,
+    categories: undefined,
+    tags: undefined,
+    paymentMethods: undefined,
+    dateRange: null,
   })
   const [sortBy, setSortBy] = useState("customerName")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
-  const searchFiltered = useMemo(() => {
-    if (!searchQuery) return allData
-    const query = searchQuery.toLowerCase()
-    return allData.filter((item) => item.customerName.toLowerCase().includes(query) || item.phoneNumber.includes(query))
-  }, [allData, searchQuery])
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+      setCurrentPage(1) // Reset to first page on search
+    }, 500)
 
-  const filtered = useMemo(() => {
-    return searchFiltered.filter((item) => {
-      if (filters.regions.length > 0 && !filters.regions.includes(item.customerRegion)) return false
-      if (filters.genders.length > 0 && !filters.genders.includes(item.gender)) return false
-      if (item.age < filters.ageRange[0] || item.age > filters.ageRange[1]) return false
-      if (filters.categories.length > 0 && !filters.categories.includes(item.productCategory)) return false
-      if (filters.tags.length > 0 && !filters.tags.some((tag) => item.tags?.includes(tag))) return false
-      if (filters.paymentMethods.length > 0 && !filters.paymentMethods.includes(item.paymentMethod)) return false
-      if (filters.dateRange) {
-        const itemDate = new Date(item.date)
-        if (itemDate < filters.dateRange[0] || itemDate > filters.dateRange[1]) return false
-      }
-      return true
-    })
-  }, [searchFiltered, filters])
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
-  const sorted = useMemo(() => {
-    const data = [...filtered]
-    data.sort((a, b) => {
-      let aVal: any, bVal: any
+  // Fetch transactions and stats
+  const fetchData = useCallback(async () => {
+    if (authLoading || !user) return
 
-      switch (sortBy) {
-        case "date":
-          aVal = new Date(a.date).getTime()
-          bVal = new Date(b.date).getTime()
-          break
-        case "quantity":
-          aVal = a.quantity
-          bVal = b.quantity
-          break
-        case "customerName":
-          aVal = a.customerName
-          bVal = b.customerName
-          break
-        default:
-          aVal = a.customerName
-          bVal = b.customerName
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Prepare filters for API
+      const apiFilters: TransactionFilters = {
+        ...filters,
+        // Convert ageRanges to ageRange if needed
+        ageRange: filters.ageRange || undefined,
       }
 
-      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1
-      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1
-      return 0
-    })
-    return data
-  }, [filtered, sortBy, sortOrder])
+      const [transactionsData, statsData] = await Promise.all([
+        getTransactions({
+          page: currentPage,
+          pageSize: 10, // As per requirements
+          search: debouncedSearch,
+          filters: apiFilters,
+          sortBy,
+          sortOrder,
+        }),
+        getStats(apiFilters),
+      ])
 
-  const itemsPerPage = 15
-  const totalPages = Math.ceil(sorted.length / itemsPerPage)
-  const startIdx = (currentPage - 1) * itemsPerPage
-  const paginatedData = sorted.slice(startIdx, startIdx + itemsPerPage)
+      setTransactions(transactionsData.transactions)
+      setTotalPages(transactionsData.pagination.totalPages)
+      setStats(statsData)
+    } catch (err) {
+      console.error("Error fetching data:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch data")
+    } finally {
+      setLoading(false)
+    }
+  }, [user, authLoading, currentPage, debouncedSearch, filters, sortBy, sortOrder])
 
-  const stats = {
-    totalUnits: sorted.reduce((sum, item) => sum + item.quantity, 0),
-    totalAmount: sorted.reduce((sum, item) => sum + item.totalAmount, 0),
-    totalDiscount: sorted.reduce((sum, item) => sum + (item.totalAmount - item.finalAmount), 0),
-  }
+  // Fetch data when dependencies change
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  if (loading) {
+  // Reset to page 1 when filters or sort change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters, sortBy, sortOrder])
+
+  // Auth check
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -132,9 +135,21 @@ export default function Dashboard() {
               sortOrder={sortOrder}
               onSortOrderChange={setSortOrder}
             />
-            <StatsCards stats={stats} />
-            <TransactionTable data={paginatedData} />
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-destructive text-sm">
+                {error}
+              </div>
+            ) : (
+              <>
+                <StatsCards stats={stats} />
+                <TransactionTable data={transactions} />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+              </>
+            )}
           </div>
         </div>
       </div>
