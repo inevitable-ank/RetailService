@@ -1,4 +1,19 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
+// Ensure API_BASE_URL always ends with /api
+const getApiBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl) {
+    // If env var is set, ensure it ends with /api
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`
+  }
+  return "http://localhost:4000/api"
+}
+
+const API_BASE_URL = getApiBaseUrl()
+
+// Debug log (remove in production)
+if (typeof window !== 'undefined') {
+  console.log('API Base URL:', API_BASE_URL)
+}
 
 export interface Transaction {
   transactionId: string
