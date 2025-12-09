@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { StatsCards } from "@/components/stats-cards"
@@ -8,8 +9,18 @@ import { FilterPanel } from "@/components/filter-panel"
 import { TransactionTable } from "@/components/transaction-table"
 import { Pagination } from "@/components/pagination"
 import { generateSalesData } from "@/lib/mock-data"
+import { useAuth } from "@/contexts/AuthContext"
+import { Loader2 } from "lucide-react"
 
 export default function Dashboard() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login")
+    }
+  }, [user, loading, router])
   const allData = useMemo(() => generateSalesData(100), [])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -89,6 +100,21 @@ export default function Dashboard() {
     totalUnits: sorted.reduce((sum, item) => sum + item.quantity, 0),
     totalAmount: sorted.reduce((sum, item) => sum + item.totalAmount, 0),
     totalDiscount: sorted.reduce((sum, item) => sum + (item.totalAmount - item.finalAmount), 0),
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
   }
 
   return (

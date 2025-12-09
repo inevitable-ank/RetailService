@@ -1,64 +1,43 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import Link from "next/link"
-import { User, Mail, LogOut, Download, UserRound, ArrowLeft, Shield, Settings, FileText } from "lucide-react"
-
-type AuthUser = {
-  user?: {
-    email?: string
-    name?: string
-    full_name?: string
-    display_name?: string
-    user_metadata?: { 
-      name?: string
-      full_name?: string
-      display_name?: string
-      [key: string]: any
-    }
-  }
-  access_token?: string
-}
+import { useRouter } from "next/navigation"
+import { User, Mail, LogOut, Download, UserRound, ArrowLeft, Shield, Settings, FileText, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function ProfilePage() {
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    const stored = localStorage.getItem("authUser")
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setAuthUser(parsed)
-      } catch (error) {
-        console.error("Error parsing authUser from localStorage:", error)
-      }
+    if (!loading && !user) {
+      router.push("/login")
     }
-  }, [])
+  }, [user, loading, router])
 
-  const handleSignOut = () => {
-    localStorage.removeItem("authUser")
-    window.location.href = "/login"
+  const handleSignOut = async () => {
+    await logout()
   }
 
   // Extract name from various possible locations in the user object
   const getUserName = () => {
-    if (!authUser?.user) return "User"
+    if (!user) return "User"
     
-    // Try different possible locations for the name
-    const user = authUser.user
+    // Check database user name field first (if exists)
+    // Then check user_metadata fields
+    // Finally fallback to email username
     return (
+      user.name ||
       user.user_metadata?.name ||
       user.user_metadata?.full_name ||
       user.user_metadata?.display_name ||
-      user.name ||
-      user.full_name ||
-      user.display_name ||
       (user.email ? user.email.split("@")[0] : "User")
     )
   }
 
   const name = getUserName()
-  const email = authUser?.user?.email || "—"
+  const email = user?.email || "—"
   
   // Generate initials from the name
   const initials = name
@@ -68,6 +47,21 @@ export default function ProfilePage() {
     .join("")
     .toUpperCase()
     .slice(0, 2) || name[0]?.toUpperCase() || "U"
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">

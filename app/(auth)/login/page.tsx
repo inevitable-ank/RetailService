@@ -4,9 +4,11 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -67,30 +69,11 @@ export default function LoginPage() {
     setFormError("")
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, password: formData.password })
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        setFormError(result?.message || "Unable to sign in. Please try again.")
-        setIsLoading(false)
-        return
-      }
-
-      // Store minimal session in localStorage for the profile page
-      const authData = {
-        user: result?.data?.user,
-        access_token: result?.data?.session?.access_token
-      }
-      localStorage.setItem("authUser", JSON.stringify(authData))
-
+      await login(formData.email, formData.password)
       router.push("/profile")
-    } catch (error) {
-      setFormError("Network error. Please try again.")
+    } catch (error: any) {
+      console.error("Login error:", error)
+      setFormError(error?.message || "Network error. Please try again.")
     } finally {
       setIsLoading(false)
     }

@@ -16,48 +16,26 @@ import {
   FileCheck,
   FilePlus
 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface SidebarProps {
   isCollapsed?: boolean
   onToggle?: (collapsed: boolean) => void
 }
 
-type AuthUser = {
-  user?: {
-    email?: string
-    user_metadata?: { name?: string; full_name?: string; display_name?: string }
-    name?: string
-    full_name?: string
-    display_name?: string
-  }
-  access_token?: string
-}
-
 export function Sidebar({ isCollapsed = false, onToggle }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(isCollapsed)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(["services", "invoices"])
-  const [userName, setUserName] = useState<string>("Anurag Yadav")
+  const { user } = useAuth()
 
-  useEffect(() => {
-    const stored = localStorage.getItem("authUser")
-    if (stored) {
-      try {
-        const authUser: AuthUser = JSON.parse(stored)
-        const user = authUser?.user
-        const name = 
-          user?.user_metadata?.name ||
-          user?.user_metadata?.full_name ||
-          user?.user_metadata?.display_name ||
-          user?.name ||
-          user?.full_name ||
-          user?.display_name ||
-          "Anurag Yadav"
-        setUserName(name)
-      } catch (error) {
-        console.error("Error parsing authUser from localStorage:", error)
-      }
-    }
-  }, [])
+  // Extract name from user data
+  const userName = user 
+    ? (user.name ||
+       user.user_metadata?.name ||
+       user.user_metadata?.full_name ||
+       user.user_metadata?.display_name ||
+       (user.email ? user.email.split("@")[0] : "User"))
+    : "User"
 
   const handleToggle = () => {
     const newState = !collapsed

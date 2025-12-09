@@ -96,7 +96,8 @@ export default function RegisterPage() {
     setSuccessMessage("")
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/signup`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ""
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email, password: formData.password, name: formData.name })
@@ -111,8 +112,11 @@ export default function RegisterPage() {
       }
 
       setSuccessMessage("Account created. Please check your email to verify, then log in.")
-      router.push("/login")
+      setTimeout(() => {
+        router.push("/login")
+      }, 3000)
     } catch (error) {
+      console.error("Registration error:", error)
       setFormError("Network error. Please try again.")
     } finally {
       setIsLoading(false)
