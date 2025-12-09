@@ -7,7 +7,15 @@ import { User, Mail, LogOut, Download, UserRound, ArrowLeft, Shield, Settings, F
 type AuthUser = {
   user?: {
     email?: string
-    user_metadata?: { name?: string }
+    name?: string
+    full_name?: string
+    display_name?: string
+    user_metadata?: { 
+      name?: string
+      full_name?: string
+      display_name?: string
+      [key: string]: any
+    }
   }
   access_token?: string
 }
@@ -18,7 +26,12 @@ export default function ProfilePage() {
   useEffect(() => {
     const stored = localStorage.getItem("authUser")
     if (stored) {
-      setAuthUser(JSON.parse(stored))
+      try {
+        const parsed = JSON.parse(stored)
+        setAuthUser(parsed)
+      } catch (error) {
+        console.error("Error parsing authUser from localStorage:", error)
+      }
     }
   }, [])
 
@@ -27,14 +40,34 @@ export default function ProfilePage() {
     window.location.href = "/login"
   }
 
-  const name = authUser?.user?.user_metadata?.name || "User"
+  // Extract name from various possible locations in the user object
+  const getUserName = () => {
+    if (!authUser?.user) return "User"
+    
+    // Try different possible locations for the name
+    const user = authUser.user
+    return (
+      user.user_metadata?.name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.display_name ||
+      user.name ||
+      user.full_name ||
+      user.display_name ||
+      (user.email ? user.email.split("@")[0] : "User")
+    )
+  }
+
+  const name = getUserName()
   const email = authUser?.user?.email || "—"
+  
+  // Generate initials from the name
   const initials = name
     .split(" ")
-    .map((n) => n[0])
+    .filter((n: string) => n.length > 0)
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2) || name[0]?.toUpperCase() || "U"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
@@ -197,7 +230,7 @@ export default function ProfilePage() {
           <div className="space-y-6">
             {/* Export Data Card */}
             <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-              <div className="bg-gradient-to-r from-primary/10 to-accent/10 px-6 py-4 border-b border-border">
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4 border-b border-border">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <Download className="h-5 w-5 text-primary" />
@@ -223,7 +256,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Stats Card */}
-            <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 border border-border/50 p-6">
+            <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/3 border border-border/50 p-6">
               <h3 className="font-semibold text-foreground mb-4 text-sm">Account Status</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
